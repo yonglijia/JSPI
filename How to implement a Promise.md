@@ -182,7 +182,7 @@ function reject(reason) {
 }
 ```
 
-好了，这样就实现了异步调用。
+好了，这样就实现了异步调用。完整代码：[https://github.com/yonglijia/JSPI/blob/master/prototype/promise_async_2.js](https://github.com/yonglijia/JSPI/blob/master/prototype/promise_async_2.js)
 
 来继续下一个话题，`Q2`
 
@@ -243,7 +243,7 @@ return newPromise
 
 > 这里有个地方需要解释下：newPromise的状态不能因为上一个promise被reject了，而更改newPromise的状态；也就是说上一个promise无论被 reject 还是被 resolve ， newPromise 都会被 resolve，只有出现异常时才会被 rejecte。
 
-`Q2`链式调用的问题也就解决了。那，抛个错误玩玩？看下 `Q3`
+`Q2`链式调用的问题也就解决了，完整代码：[https://github.com/yonglijia/JSPI/blob/master/prototype/promise_chain_3.js](https://github.com/yonglijia/JSPI/blob/master/prototype/promise_chain_3.js)。那，抛个错误玩玩？看下 `Q3`
 
 ```javascript
 let promise = new Promise((resolve,reject) => {
@@ -272,7 +272,11 @@ if (typeof executor !== 'function') {
 }
 
 try{
-    executor(resolve, reject)
+    executor(function (value) {
+    	resolve(value)
+	}, function (reason) {
+    	reject(reason)
+	})
 }catch(e){
     reject(e)
 }
@@ -307,7 +311,6 @@ if (_this.status == 'rejected') {
 
 if (_this.status == 'pending'){
     newPromise = new Promise(function(resolve,reject){
-
         _this.onFulfilledCallbacks.push(function(){
             try{
                 let x = onFulfilled(_this.value)
@@ -316,7 +319,6 @@ if (_this.status == 'pending'){
                 reject(e)
             }
         })
-
         _this.onRejectedCallbacks.push(function(){ //add
             try{
                 let x = onRejected(_this.reason)
@@ -330,7 +332,7 @@ if (_this.status == 'pending'){
 }
 ```
 
-贴了这么多狗皮膏药，再怎么处理折腾也能扛得住了，比如上面的问题，它很从容的打印一个`reject: Error: error`，并不会崩溃，处理异常就是这么淡定。
+贴了这么多狗皮膏药，再怎么处理折腾也能扛得住了，比如上面的问题，它很从容的打印一个`reject: Error: error`，并不会崩溃，处理异常就是这么淡定。完整代码：[https://github.com/yonglijia/JSPI/blob/master/prototype/promise_withCatchError_4.js](https://github.com/yonglijia/JSPI/blob/master/prototype/promise_withCatchError_4.js)
 
 > 人生从来都不是一帆风顺的，有一个坑，就会有更多坑！
 
@@ -378,7 +380,7 @@ onRejected = typeof onRejected === 'function' ? onRejected : function (err) {
 }
 ```
 
-搞定！
+搞定！完整代码：[https://github.com/yonglijia/JSPI/blob/master/prototype/promise_transmit_value_5.js](https://github.com/yonglijia/JSPI/blob/master/prototype/promise_transmit_value_5.js)
 
 我们解决了不少问题了：`异步调用`，`链式调用` ，`异常处理`，`值穿透`，是不是可以休息会了？当然不行！
 
@@ -470,7 +472,7 @@ newPromise = new Promise(function(resolve,reject){
 })
 ```
 
-验证`Q5`发现，打印出的结果是符合我们预期的。那我们再验证下其他的异步情况
+验证`Q5`发现，打印出的结果是符合我们预期的。完整代码：[https://github.com/yonglijia/JSPI/blob/master/prototype/promise_async_then_6.js](https://github.com/yonglijia/JSPI/blob/master/prototype/promise_async_then_6.js)。那我们再验证下其他的异步情况
 
 `Q6`
 
@@ -527,29 +529,28 @@ function (callback) {
 } 
 ```
 
-我们就用process.nextTick来改造。
+我们就用process.nextTick来改造。完整代码：[https://github.com/yonglijia/JSPI/blob/master/prototype/promise_nextTick_7.js](https://github.com/yonglijia/JSPI/blob/master/prototype/promise_nextTick_7.js)
 
 下面来看下一个问题：
 
 `Q7`
 
 ```javascript
-//---------------promise
 new Promise((resolve, reject) => {
     resolve(new Promise((resolve) => {
         resolve(1)
     }))
 }).then((value) => {
-    console.log('success1:', value)
+    console.log('success:', value)
 }, (reason) => {
-    console.log('failed1:', reason)
+    console.log('failed:', reason)
 })
 ```
 
 结果：
 
 ```javascript
-success1: Promise {
+success: Promise {
   status: 'resolved',
   value: 1,
   reason: null,
@@ -560,10 +561,10 @@ success1: Promise {
 使用原生的Promise运行，结果是
 
 ```
-success1: 1
+success: 1
 ```
 
-对于下面的情况，我们一样无法处理：
+我们无法正确处理。对于下面的情况，我们一样无法处理：
 
 1.传进来的是当前promise
 
@@ -577,9 +578,9 @@ new Promise((resolve, reject) => {
         }
     })
 }).then((value) => {
-    console.log('success2:', value)
+    console.log('success:', value)
 }, (reason) => {
-    console.log('failed2:', reason)
+    console.log('failed:', reason)
 })
 ```
 
@@ -605,9 +606,9 @@ new Promise((resolve, reject) => {
     }))
     reject('error')
 }).then((value) => {
-    console.log('success1:', value)
+    console.log('success:', value)
 }, (reason) => {
-    console.log('failed1:', reason)
+    console.log('failed:', reason)
 })
 ```
 
@@ -674,7 +675,7 @@ function resolvePromise(promise,x,fulfill,reject) {
 }
 ```
 
-我们先写到这里：验证下`Q7`,发现结果是正确的,`success1: 1`。
+我们先写到这里：验证下`Q7`,发现结果是正确的,`success1: 1`。完整代码：[https://github.com/yonglijia/JSPI/blob/master/prototype/promise_without_called_8.js](https://github.com/yonglijia/JSPI/blob/master/prototype/promise_without_called_8.js)
 
 我们用现在的promise来执行另一个问题：Q8
 
@@ -719,7 +720,7 @@ try {
 }
 ```
 
-从这里可以看出，我为什么要在文章开头加的那个注释的意思了吧。
+从这里可以看出，我为什么要在文章开头加的那个注释的意思了吧。完整代码：[https://github.com/yonglijia/JSPI/blob/master/prototype/promise_with_called_9.js](https://github.com/yonglijia/JSPI/blob/master/prototype/promise_with_called_9.js)
 
 好再次运行`Q8`,结果：`success:1`。好我们继续完善我们`resolvePromise`，来处理下thenable的情况
 
@@ -1027,6 +1028,8 @@ promises-aplus-tests myPromise.js
 
 ![20180528152746135184276.png](http://ody1t82mr.bkt.clouddn.com/20180528152746135184276.png)
 
+完整代码：[https://github.com/yonglijia/JSPI/blob/master/prototype/promise_final_10.js](https://github.com/yonglijia/JSPI/blob/master/prototype/promise_final_10.js)
+
 ## 其他方法
 
 ```javascript
@@ -1069,4 +1072,4 @@ Promise.all = function(promises){
 }
 ```
 
-理解了Promise，上面其他的方法就很简单了，这里就不解释了。完整代码参见[https://github.com/yonglijia/JSPI/blob/master/lib/promise.js
+理解了Promise，上面其他的方法就很简单了，这里就不解释了。最终代码参见[https://github.com/yonglijia/JSPI/blob/master/lib/promise.js](https://github.com/yonglijia/JSPI/blob/master/lib/promise.js)
