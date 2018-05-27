@@ -123,6 +123,7 @@ Promise.prototype.then = function (onFulfilled, onRejected) {
 
     return [() => {
     },()=>{
+        //-----------normal
         var promise2 = new Promise((resolve,reject) => {
             setTimeout(function(){
                 resolve('test simplePromise resolve')
@@ -154,7 +155,7 @@ Promise.prototype.then = function (onFulfilled, onRejected) {
         });
 
         console.log(2)
-        //5.2 testPromise
+        //6.2 testPromise
     }][type]
 
 }(2)())

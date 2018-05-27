@@ -42,7 +42,7 @@ Promise.prototype.then = function (onFulfilled, onRejected) {
     let _this = this
     let newPromise
     if (_this.status == 'fulfilled') {
-        // //add
+        //add
         newPromise = new Promise(function(resolve,reject){
             let x = onFulfilled(_this.value)
             resolve(x)

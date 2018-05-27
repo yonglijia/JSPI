@@ -1,3 +1,4 @@
+
 function Promise(executor) {
     if (!(this instanceof Promise)) {
         return new Promise(executor);
@@ -15,10 +16,10 @@ function Promise(executor) {
     _this.onResolvedCallbacks = []
 
     function resolve(value) {
-        resolvePromise(_this, value,_resolve, reject)
+        resolvePromise(_this,value,fulfill,reject)
     }
 
-    function _resolve(value) { //只接收普通值
+    function fulfill(value){ //只接收普通值
         if (_this.status === 'pending') {
             _this.status = 'resolved'
             _this.value = value
@@ -38,8 +39,19 @@ function Promise(executor) {
         }
     }
 
+
+
     try {
-        executor(resolve, reject)
+        let called = false
+        executor(function (value) {
+            if(called) return
+            called = true
+            resolve(value)
+        }, function (reason) {
+            if(called) return
+            called = true
+            reject(reason)
+        })
     } catch (e) {
         console.log(e)
         reject(e)
@@ -47,57 +59,53 @@ function Promise(executor) {
 
 }
 
-function resolvePromise(promise, x, resolve, reject) {
+function resolvePromise(promise,x,fulfill,reject) {
 
     if (promise === x) {//2.3.1
         return reject(new TypeError('循环引用了'))
     }
-
-    let called;
-
     //2.3.2
     if (x instanceof Promise) {
         //2.3.2.1
         if (x.status === 'pending') { //because x could resolved by a Promise Object
-            x.then(function (y) {
-                resolvePromise(promise, y, resolve, reject)
-            }, function (err) {
-                reject(err)
-            })
+            x.then(function(y) {
+                resolvePromise(promise, y, fulfill, reject)
+            }, reject)
         } else {
             //2.3.2.2     2.3.2.3
             //if it is resolved, it will never resolved by a Promise Object but a normal value;只可能是一个普通值
-            x.then(resolve,reject)
+            x.then(fulfill, reject)
         }
         return
     }
 
+    let called = false;
     //2.3.3
-    if (x !== null && (typeof x === 'object' || typeof x === 'function')) {
+    if(x !== null && (typeof x === 'object' || typeof x === 'function')){
         try {
             //2.3.3.1
             let then = x.then;// 保存一下x的then方法
             if (typeof then === 'function') {//2.3.3.3
-                then.call(x, (y) => {
-                    if (called) return
+                then.call(x,(y)=>{
+                    if (called) return //防止resolve后，又reject,例子：示例1
                     called = true
-                    resolvePromise(promise, y, resolve, reject)
-                }, (err) => {
+                    resolvePromise(promise,y,fulfill,reject)
+                },(err)=>{
                     if (called) return
                     called = true
                     reject(err)
                 })
-            } else {//2.3.3.2   x: {then:1}
-                resolve(x)
+            }else{//2.3.3.2   x: {then:1}
+                fulfill(x)
             }
-        } catch (e) {//2.3.3.2
+        }catch(e){//2.3.3.2
             if (called) return
             called = true;
             reject(e);
         }
 
-    } else {//2.3.3.4
-        resolve(x)
+    }else{//2.3.3.4
+        fulfill(x)
     }
 }
 
@@ -179,43 +187,25 @@ Promise.deferred = Promise.defer = function () {
     return dfd
 }
 
-// new Promise((resolve, reject) => {
-//     // resolve({
-//     //     then:(onFulfilled,onRejected)=>{
-//     //         onFulfilled(new Promise((resolve1)=>{
-//     //             setTimeout(()=>{
-//     //                 resolve1(456)
-//     //             },1000)
-//     //         }))
-//     //         onRejected(789)
-//     //     }
-//     // })
-//     resolve(new Promise((resolve1, reject) => {
-//         resolve1(new Promise((resolve1) => {
-//             setTimeout(() => {
-//                 resolve1(456)
-//             }, 1000)
-//         }))
-//         reject(789)
-//     }))
-//
-//     reject(1)
-// }).then((value) => {
-//     console.log('success:', value)
-// }, (reason) => {
-//     console.log('reject:', reason)
-// })
+//-------------test code--------------
+(function (type) {
 
-new Promise((resolve,reject)=>{
-    resolve(new Promise((resolve1,reject1)=>{
-        setTimeout(()=>{
-            resolve1(1)
-        },1000)
-    }))
-    reject(2)
-}).then((value)=>{
-    console.log('success:',value)
-},(reason)=>{
-    console.log('reject:',reason)
-})
+    return [() => {}, () => {
+
+        new Promise((resolve, reject) => {
+            resolve({
+                then: (resolve,reject)=>{
+                    resolve(1)
+                }
+            })
+        }).then((value) => {
+            console.log('success:', value)
+        }, (reason) => {
+            console.log('failed:', reason)
+        })
+
+    }][type]
+
+}(1)())
+
 module.exports = Promise

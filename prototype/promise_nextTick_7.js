@@ -159,8 +159,7 @@ Promise.prototype.then = function (onFulfilled, onRejected) {
             console.log('failed2:', reason)
         })
 
-        //resolve是自己，thenable,或者是promise，thenable
-
+        //问题：resolve是自己，thenable,或者是promise，thenable
 
     }][type]
 

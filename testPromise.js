@@ -80,7 +80,7 @@
 
     }, () => {
         //6.settimeout
-        var Promise = require('./prototype/promise_async_resolve_6')
+        var Promise = require('./prototype/promise_async_then_6')
 
         setTimeout(() => {
             console.log(5)

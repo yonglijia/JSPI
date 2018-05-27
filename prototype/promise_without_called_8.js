@@ -55,7 +55,7 @@ function Promise(executor) {
 }
 
 
-function resolvePromise(promise,x,resolve,reject) {
+function resolvePromise(promise,x,fulfill,reject) {
 
     if (promise === x) {//2.3.1
         return reject(new TypeError('循环引用了'))
@@ -65,15 +65,16 @@ function resolvePromise(promise,x,resolve,reject) {
         //2.3.2.1
         if (x.status === 'pending') { //because x could resolved by a Promise Object
             x.then(function(y) {
-                resolvePromise(promise, y, resolve, reject)
+                resolvePromise(promise, y, fulfill, reject)
             }, reject)
         } else {
             //2.3.2.2     2.3.2.3
             //if it is resolved, it will never resolved by a Promise Object but a normal value;只可能是一个普通值
-            x.then(resolve, reject)
+            x.then(fulfill, reject)
         }
         return
     }
+    fulfill(x)
 }
 
 Promise.prototype.then = function (onFulfilled, onRejected) {
@@ -148,7 +149,21 @@ Promise.prototype.then = function (onFulfilled, onRejected) {
 //-------------test code--------------
 (function (type) {
 
-    return [() => {}, () => {
+    return [() => {}, ()=>{
+        //--------------- normal
+        new Promise((resolve, reject) => {
+            resolve(new Promise((resolve) => {
+                resolve(1)
+            }))
+        }).then((value) => {
+            console.log('success1:', value)
+        }, (reason) => {
+            console.log('failed1:', reason)
+        })
+
+    }, ()=>{
+
+        //Q--------------withoutcalled
         new Promise((resolve, reject) => {
             resolve(new Promise((resolve) => {
                 resolve(1)
@@ -159,8 +174,8 @@ Promise.prototype.then = function (onFulfilled, onRejected) {
         }, (reason) => {
             console.log('failed:', reason)
         })
-    }, () => {
-    }][type]
+
+    },][type]
 
 }(1)())
 

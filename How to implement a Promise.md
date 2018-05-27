@@ -1,7 +1,4 @@
-# JSPI
-Just a simple Promise/A+ implementation
-
-声明：本篇文章不是讲Promise如何使用的。如果还不清楚，请移步：http://es6.ruanyifeng.com/#docs/promise，阮一峰老师讲的通俗易懂！
+声明：本篇文章不是讲Promise如何使用的。如果还不清楚，请移步：[http://es6.ruanyifeng.com/#docs/promise](http://es6.ruanyifeng.com/#docs/promise )  阮一峰老师讲的通俗易懂！
 
 用过很久Promise，大家应该都很熟悉了吧！既然那么熟了，下面几个问题，了解一下？
 
@@ -44,7 +41,7 @@ new Promise((resolve, reject) => {
 
 ## PromiseA+规范
 
-首先来看下规范，https://promisesaplus.com。是不是顿时又懵逼了，这么长，这都是啥和啥啊。。。
+首先来看下规范，[https://promisesaplus.com](https://promisesaplus.com)。是不是顿时又懵逼了，这么长，这都是啥和啥啊。。。
 
 别怕，我简单总结了下它的核心点，也就四个：
 
@@ -487,6 +484,8 @@ new Promise((resolve,reject)=>{
     Promise.resolve(4).then((value)=>{
         console.log(value)
     })
+}).then((value)=>{
+  console.log(value)  
 })
 console.log(2)
 ```
@@ -564,7 +563,7 @@ success1: Promise {
 success1: 1
 ```
 
-不仅打印的结果不一样，打印的顺序也不一样。下面的情况一样我们无法处理：
+对于下面的情况，我们一样无法处理：
 
 1.传进来的是当前promise
 
@@ -616,7 +615,7 @@ new Promise((resolve, reject) => {
 
 其实这些规范都考虑到了。
 
-要解决这个问题，还得回到上面我们总结的第四个核心点
+要解决这个问题，还得先理解下上面我们总结的第四个核心点
 
 > 4.then方法返回的promise中的必须包含一个resolve方法，能够处理上一个promise的onFulfilled/onRejected返回的各种类型的值x和直接传入的各种类型的值；也就是说，它的resove方法，能够接受各种类型的数据，并最终接受一个普通值。
 
@@ -649,6 +648,80 @@ function fulfill(value){ //只接受普通值，不接受promise和thenable
 > resolve是将传进来的数据，处理成一个普通值，并根据处理的情况，决定是否fulfill还是reject。
 
 下面重点讲解resolvePromise：
+
+```javascript
+function resolvePromise(promise,x,fulfill,reject) {
+    
+    if (promise === x) {//2.3.1 传进来的x与当前promise相同，报错
+        return reject(new TypeError('循环引用了'))
+    }
+   
+    //2.3.2 x如果是一个promise
+    if (x instanceof Promise) {
+        //2.3.2.1
+        if (x.status === 'pending') { //x状态还未改变，返回的下一个promise的resove的接收的值y不确定，对其递归处理
+            x.then(function(y) {
+                resolvePromise(promise, y, fulfill, reject)
+            },reject)
+        } else {
+            //2.3.2.2 ,  2.3.2.3
+            //状态确定，如果fulfill那传进来的肯定是普通值，如果reject直接处理，不管你抛出来的是什么东东
+            x.then(fulfill, reject)
+        }
+        return;
+    }
+    fulfill(x)
+}
+```
+
+我们先写到这里：验证下`Q7`,发现结果是正确的,`success1: 1`。
+
+我们用现在的promise来执行另一个问题：Q8
+
+```javascript
+new Promise((resolve, reject) => {
+    resolve(new Promise((resolve) => {
+        resolve(1)
+    }))
+    reject('error')
+}).then((value) => {
+    console.log('success:', value)
+}, (reason) => {
+    console.log('failed:', reason)
+})
+```
+
+发现结果是：`failed:error`。为什么我们写的promise的状态不可控？
+
+事实上是这样的，根据上面的resolvePromise，如果发现resolve接收的参数是一个promise,会去递归调用它的then方法，我们知道，then方法中包含微任务。然后就先执行了reject('error')，这个执行完毕，promise的状态从pending更新为reject，所以当resolve的微任务执行的时候，状态已经改变了，无法执行fulfill的操作。执行下一个微任务，打印了`failed:error`。
+
+从这个问题可以看出，现在我们写的promise，resolve和reject的调用并不阻塞promise状态的更新。标准只规定了，状态改变一次就不能改变了，并没有规定resolve和reject的调用，要阻塞状态更新。虽然并没有这么硬性规定，但是大家都是这么理解的，比如你可以运行浏览器，node原生promise以及第三方bluebird，Q，lie库等，都是resolve，reject调用的时候，会阻塞另一个方法的状态更新。
+
+#### promise状态阻塞更新
+
+我们可以通过在Promise的构造函数中添加called变量的方式，来阻塞状态更新
+
+```javascript
+try {
+    let called = false
+    executor(function (value) {
+        if(called) return
+        called = true
+        resolve(value)
+    }, function (reason) {
+        if(called) return
+        called = true
+        reject(reason)
+    })
+} catch (e) {
+    console.log(e)
+    reject(e)
+}
+```
+
+从这里可以看出，我为什么要在文章开头加的那个注释的意思了吧。
+
+好再次运行`Q8`,结果：`success:1`。好我们继续完善我们`resolvePromise`，来处理下thenable的情况
 
 ```javascript
 function resolvePromise(promise,x,fulfill,reject) {
@@ -704,14 +777,14 @@ function resolvePromise(promise,x,fulfill,reject) {
 
 上面的注释已经很详细了，包括了规范规定的所有异常处理。
 
-这里有个疑点需要重点解释一下，我们看到上述代码中出现的
+这里有个疑点需要重点解释一下，我们看到上述代码中出现的。
 
 ```javascript
 if (called) return 
 called = true
 ```
 
-called变量是干嘛的？fulfill和resolve不是有控制状态变化的逻辑吗？
+called变量是干嘛的？我们不是刚加了这个变量吗？这里的变量和我们刚才添加的有什么不一样呢？
 
 这个要通过下面的例子来进行解释
 
@@ -732,6 +805,11 @@ new Promise((resolve,reject)=>{
 },(reason)=>{
     console.log('reject:',reason)
 })
+```
+
+其实这段代码就类似于
+
+```javascript
 new Promise((resolve,reject)=>{
     resolve(new Promise((resolve,reject)=>{
         	resolve(new Promise((resolve1)=>{
@@ -746,43 +824,249 @@ new Promise((resolve,reject)=>{
 },(reason)=>{
     console.log('reject:',reason)
 })
-
-
-
-new Promise((resolve,reject)=>{
-    resolve(new Promise((resolve1,reject1)=>{
-        setTimeout(()=>{
-            resolve1(1)
-        })
-    }))
-    reject(2)
-}).then((value)=>{
-    console.log('success:',value)
-},(reason)=>{
-    console.log('reject:',reason)
-})
 ```
 
-上面的这种情况，因为这个thenable对象没有状态管理机制，而且它里面的then方法还没有按照规范来写，要么onFulfilled，要么onRejected。
+我们通过上面的代码中可以看出，thenable其实就是一个没有promise状态阻塞更新机制的promise。这里的called就相当于是为了防止调用了resolve又调用了reject乱套的问题。
 
-called变量的作用：
-
-> 使得当前的promise的状态改变，不因为传入的promise或者thenable对象的状态的延迟改变而受影响。
+### 完整代码
 
 ```javascript
-new Promise((resolve,reject)=>{
-    resolve(new Promise((resolve1,reject1)=>{
-        setTimeout(()=>{
-            resolve1(1)
+function Promise(executor) {
+    if (!(this instanceof Promise)) {
+        return new Promise(executor);
+    }
+
+    if (typeof executor !== 'function') {
+        throw new TypeError('Promise executor is not a function');
+    }
+
+    let _this = this
+    _this.status = 'pending'
+    _this.value = null
+    _this.reason = null
+    _this.onRejectedCallbacks = []
+    _this.onResolvedCallbacks = []
+
+    function resolve(value) {
+        resolvePromise(_this,value,fulfill,reject)
+    }
+
+    function fulfill(value){ //只接收普通值
+        if (_this.status === 'pending') {
+            _this.status = 'resolved'
+            _this.value = value
+            _this.onResolvedCallbacks.forEach(function (fn) {
+                fn()
+            })
+        }
+    }
+
+    function reject(reason) {
+        if (_this.status === 'pending') {
+            _this.status = 'rejected'
+            _this.reason = reason
+            _this.onRejectedCallbacks.forEach(function (fn) {
+                fn()
+            })
+        }
+    }
+
+    try {
+        let called = false
+        executor(function (value) {
+            if(called) return
+            called = true
+            resolve(value)
+        }, function (reason) {
+            if(called) return
+            called = true
+            reject(reason)
         })
-    }))
-    reject(2)
-}).then((value)=>{
-    console.log('success:',value)
-},(reason)=>{
-    console.log('reject:',reason)
-})
+    } catch (e) {
+        console.log(e)
+        reject(e)
+    }
+}
+
+function resolvePromise(promise,x,resolve,reject) {
+
+    if (promise === x) {//2.3.1
+        return reject(new TypeError('循环引用了'))
+    }
+    //2.3.2
+    if (x instanceof Promise) {
+        //2.3.2.1
+        if (x.status === 'pending') { //because x could resolved by a Promise Object
+            x.then(function(y) {
+                resolvePromise(promise, y, resolve, reject)
+            }, reject)
+        } else {
+            //2.3.2.2     2.3.2.3
+            //if it is resolved, it will never resolved by a Promise Object but a normal value;只可能是一个普通值
+            x.then(resolve, reject)
+        }
+        return
+    }
+
+    let called = false;
+    //2.3.3
+    if(x !== null && (typeof x === 'object' || typeof x === 'function')){
+        try {
+            //2.3.3.1
+            let then = x.then;// 保存一下x的then方法
+            if (typeof then === 'function') {//2.3.3.3
+                then.call(x,(y)=>{
+                    if (called) return //防止resolve后，又reject,例子：示例1
+                    called = true
+                    resolvePromise(promise,y,resolve,reject)
+                },(err)=>{
+                    if (called) return
+                    called = true
+                    reject(err)
+                })
+            }else{//2.3.3.2   x: {then:1}
+                resolve(x)
+            }
+        }catch(e){//2.3.3.2
+            if (called) return
+            called = true;
+            reject(e);
+        }
+
+    }else{//2.3.3.4
+        resolve(x)
+    }
+}
+
+Promise.prototype.then = function (onFulfilled, onRejected) {
+
+    onFulfilled = typeof onFulfilled === 'function' ? onFulfilled : function (value) {
+        return value
+    }
+    onRejected = typeof onRejected === 'function' ? onRejected : function (err) {
+        throw err
+    }
+
+    let _this = this
+    let newPromise
+    if (_this.status === 'resolved') {
+        newPromise = new Promise(function (resolve, reject) {
+            process.nextTick(function () {
+                try {
+                    let x = onFulfilled(_this.value)
+                    resolve(x)
+                } catch (e) {
+                    reject(e)
+                }
+            })
+        })
+    }
+    if (_this.status === 'rejected') {
+        newPromise = new Promise(function (resolve, reject) {
+            process.nextTick(function () {
+                try {
+                    let x = onRejected(_this.reason)
+                    resolve(x)
+                } catch (e) {
+                    reject(e)
+                }
+            })
+        })
+    }
+    if (_this.status === 'pending') {
+        newPromise = new Promise(function (resolve, reject) {
+
+            _this.onResolvedCallbacks.push(function () {
+                process.nextTick(function () {
+                    try {
+                        let x = onFulfilled(_this.value)
+                        resolve(x)
+                    } catch (e) {
+                        reject(e)
+                    }
+                })
+            })
+            _this.onRejectedCallbacks.push(function () {
+                process.nextTick(function () {
+                    try {
+                        let x = onRejected(_this.reason)
+                        resolve(x)
+                    } catch (e) {
+                        reject(e)
+                    }
+                })
+            })
+
+        })
+    }
+    return newPromise
+}
+
+module.exports = Promise
 ```
 
-## 终极实现-Promise
+测试，首先你要暴露一个接口：
 
+```javascript
+Promise.deferred = Promise.defer = function () {
+    var dfd = {}
+    dfd.promise = new Promise(function (resolve, reject) {
+        dfd.resolve = resolve
+        dfd.reject = reject
+    })
+    return dfd
+}
+```
+
+```
+npm install promises-aplus-tests
+promises-aplus-tests myPromise.js
+```
+
+测试通过：
+
+![20180528152746135184276.png](http://ody1t82mr.bkt.clouddn.com/20180528152746135184276.png)
+
+## 其他方法
+
+```javascript
+Promise.prototype.catch = function(callback){
+    return this.then(null,callback)
+}
+Promise.resolve = function(value){
+    return new Promise(function(resolve,reject){
+        resolve(value);
+    })
+}
+Promise.reject = function(value){
+    return new Promise(function(resolve,reject){
+        reject(value);
+    })
+}
+Promise.race = function(promise){
+    return new Promise(function (resolve,reject){
+        for(var i = 0;i<promise.length;i++){
+            promise[i].then(resolve,reject)
+        }
+    })
+}
+Promise.all = function(promises){
+    return new Promise(function(resolve,reject){
+        let resultArr = [];
+        let times = 0;
+        function processData(index,y){
+            resultArr[index]= y;
+            if(++times === promises.length){
+                resolve(resultArr)
+            }
+        }
+        for(var i = 0;i<promises.length;i++){
+            promises[i].then(function(y){
+                processData(i,y)
+            },reject)
+        }
+    })
+}
+```
+
+理解了Promise，上面其他的方法就很简单了，这里就不解释了。完整代码参见[https://github.com/yonglijia/JSPI/blob/master/lib/promise.js

@@ -116,6 +116,7 @@ Promise.prototype.then = function (onFulfilled, onRejected) {
 
     return [()=>{
     },()=>{
+        //--------normal
         new Promise((resolve,reject)=>{
             resolve(1)
         }).then().then().then((value)=>{

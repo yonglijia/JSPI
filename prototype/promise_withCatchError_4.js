@@ -111,6 +111,7 @@ Promise.prototype.then = function (onFulfilled, onRejected) {
 
     return [()=>{
     },()=>{
+        //----------normal catch error
         let promise1 = new Promise((resolve,reject) => {
             throw new Error('error')
         })
@@ -120,45 +121,13 @@ Promise.prototype.then = function (onFulfilled, onRejected) {
             console.log('reject:',reason)
         })
     },()=>{
-
-        //2 Unhandle situation when sync call onFulfill and onReject
-
-        var promise2 = new Promise((resolve,reject) => {
-            setTimeout(function(){
-                resolve('test simplePromise resolve')
-            },100)
-        })
-
-        setTimeout(() => {
-            promise2.then(function(value){
-                console.log('success:',value)
-            },function(reason){
-                console.log('failed:',reason)
-            })
-
-            console.log('end')
-        }, 200);
-
-        var promise2 = new Promise((resolve,reject) => {
-            resolve('test simplePromise resolve')
-        })
-
-        promise2.then(function(value){
-            console.log('success:',value)
-        },function(reason){
-            console.log('failed:',reason)
-        })
-
-        console.log('end')
-        //4.2
-
-    },()=>{
+        //2can't transmit value
         new Promise((resolve,reject)=>{
             resolve(1)
         }).then().then().then((value)=>{
             console.log(value)
         },(reason)=>{console.log(reason)})
     }][type]
-})(3)()
+})(``)()
 
 module.exports = Promise
