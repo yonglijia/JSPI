@@ -61,33 +61,34 @@ function Promise(executor) {
 
 function resolvePromise(promise,x,fulfill,reject) {
 
-    if (promise === x) {//2.3.1
+    if (promise === x) {//2.3.1 传进来的x与当前promise相同，报错
         return reject(new TypeError('循环引用了'))
     }
-    //2.3.2
+
+    //2.3.2 x如果是一个promise
     if (x instanceof Promise) {
         //2.3.2.1
-        if (x.status === 'pending') { //because x could resolved by a Promise Object
+        if (x.status === 'pending') { //x状态还未改变，返回的下一个promise的resove的接收的值y不确定，对其递归处理
             x.then(function(y) {
                 resolvePromise(promise, y, fulfill, reject)
-            }, reject)
+            },reject)
         } else {
-            //2.3.2.2     2.3.2.3
-            //if it is resolved, it will never resolved by a Promise Object but a normal value;只可能是一个普通值
+            //2.3.2.2 ,  2.3.2.3
+            //状态确定，如果fulfill那传进来的肯定是普通值，如果reject直接处理，不管你抛出来的是什么东东
             x.then(fulfill, reject)
         }
-        return
+        return;
     }
-
     let called = false;
     //2.3.3
+    //x 是一个thenable
     if(x !== null && (typeof x === 'object' || typeof x === 'function')){
         try {
             //2.3.3.1
-            let then = x.then;// 保存一下x的then方法
-            if (typeof then === 'function') {//2.3.3.3
+            let then = x.then;
+            if (typeof then === 'function') {//2.3.3.3  {then:: (resolve,reject)=>{resolve(1)}}}
                 then.call(x,(y)=>{
-                    if (called) return //防止resolve后，又reject,例子：示例1
+                    if (called) return
                     called = true
                     resolvePromise(promise,y,fulfill,reject)
                 },(err)=>{
@@ -95,20 +96,18 @@ function resolvePromise(promise,x,fulfill,reject) {
                     called = true
                     reject(err)
                 })
-            }else{//2.3.3.2   x: {then:1}
+            }else{//2.3.3.2   x: {then:1}，是一个带then属性的普通值
                 fulfill(x)
             }
-        }catch(e){//2.3.3.2
+        }catch(e){//2.3.3.2  可以参见上面说的异常情况2
             if (called) return
             called = true;
             reject(e);
         }
-
-    }else{//2.3.3.4
+    }else{//2.3.3.4,x是一个普通值
         fulfill(x)
     }
 }
-
 Promise.prototype.then = function (onFulfilled, onRejected) {
 
     onFulfilled = typeof onFulfilled === 'function' ? onFulfilled : function (value) {
@@ -185,7 +184,7 @@ Promise.deferred = Promise.defer = function () {
         dfd.reject = reject
     })
     return dfd
-}
+};
 
 //-------------test code--------------
 (function (type) {
