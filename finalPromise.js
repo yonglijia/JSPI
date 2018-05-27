@@ -25,6 +25,7 @@ function Promise(executor) {
         if (_this.status === 'pending') {
             _this.status = 'resolved'
             _this.value = value
+            console.log(789)
             _this.onResolvedCallbacks.forEach(function (fn) {
                 fn()
             })
@@ -41,6 +42,7 @@ function Promise(executor) {
         if (_this.status === 'pending') {
             _this.status = 'rejected'
             _this.reason = reason
+            console.log(88)
             _this.onRejectedCallbacks.forEach(function (fn) {
                 fn()
             })
@@ -88,10 +90,12 @@ function resolvePromise(promise, x, resolve, reject) {
             let then = x.then;// 保存一下x的then方法
             if (typeof then === 'function') {//2.3.3.3
                 then.call(x, (y) => {
+                    console.log(123)
                     if (called) return
                     called = true
                     resolvePromise(promise, y, resolve, reject)
                 }, (err) => {
+                    console.log(456)
                     if (called) return
                     called = true
                     reject(err)
@@ -244,6 +248,44 @@ Promise.deferred = Promise.defer = function () {
 // },(reason)=>{
 //     console.log('reject:',reason)
 // })
+
+// new Promise((resolve, reject) => {
+//     resolve({
+//         then:(onFulfilled,onRejected)=>{
+//             onFulfilled(new Promise((resolve1)=>{
+//                 setTimeout(()=>{
+//                     resolve1(456)
+//                 },1000)
+//             }))
+//             onRejected(789)
+//         }
+//     })
+// }).then((value) => {
+//     console.log('success:', value)
+// }, (reason) => {
+//     console.log('reject:', reason)
+// })
+
+new Promise((resolve, reject) => {
+    // resolve(new Promise((resolve1, reject) => {
+    //     resolve1(new Promise((resolve1) => {
+    //         setTimeout(() => {
+    //             resolve1(456)
+    //         }, 1000)
+    //     }))
+    //     reject(789)
+    // }))
+    resolve(new Promise((resolve1) => {
+        resolve1(456)
+    }))
+
+    reject(1)
+
+}).then((value) => {
+    console.log('success:', value)
+}, (reason) => {
+    console.log('reject:', reason)
+})
 
 
 module.exports = Promise

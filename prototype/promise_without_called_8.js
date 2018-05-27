@@ -42,14 +42,9 @@ function Promise(executor) {
 
 
     try {
-        let called = false
         executor(function (value) {
-            if(called) return
-            called = true
             resolve(value)
         }, function (reason) {
-            if(called) return
-            called = true
             reject(reason)
         })
     } catch (e) {
@@ -58,6 +53,7 @@ function Promise(executor) {
     }
 
 }
+
 
 function resolvePromise(promise,x,resolve,reject) {
 
@@ -77,35 +73,6 @@ function resolvePromise(promise,x,resolve,reject) {
             x.then(resolve, reject)
         }
         return
-    }
-
-    let called = false;
-    //2.3.3
-    if(x !== null && (typeof x === 'object' || typeof x === 'function')){
-        try {
-            //2.3.3.1
-            let then = x.then;// 保存一下x的then方法
-            if (typeof then === 'function') {//2.3.3.3
-                then.call(x,(y)=>{
-                    if (called) return //防止resolve后，又reject,例子：示例1
-                    called = true
-                    resolvePromise(promise,y,resolve,reject)
-                },(err)=>{
-                    if (called) return
-                    called = true
-                    reject(err)
-                })
-            }else{//2.3.3.2   x: {then:1}
-                resolve(x)
-            }
-        }catch(e){//2.3.3.2
-            if (called) return
-            called = true;
-            reject(e);
-        }
-
-    }else{//2.3.3.4
-        resolve(x)
     }
 }
 
@@ -176,76 +143,26 @@ Promise.prototype.then = function (onFulfilled, onRejected) {
         })
     }
     return newPromise
-}
+};
 
-Promise.deferred = Promise.defer = function () {
-    var dfd = {}
-    dfd.promise = new Promise(function (resolve, reject) {
-        dfd.resolve = resolve
-        dfd.reject = reject
-    })
-    return dfd
-}
+//-------------test code--------------
+(function (type) {
 
-// //-------------test code--------------
-// (function (type) {
-//
-//     return [() => {}, () => {
-//
-//         var promise = new Promise((resolve,reject)=>{
-//
-//             resolve(1)
-//             // resolve(new Promise((resolve,reject)=>{
-//             //     setTimeout(()=>{
-//             //         resolve(1)
-//             //     },1000)
-//             // }))
-//             reject('error')
-//         })
-//
-//     }, () => {
-//         //Q7---------------
-//         new Promise((resolve, reject) => {
-//             resolve(new Promise((resolve) => {
-//                 resolve(1)
-//             }))
-//         }).then((value) => {
-//             console.log('success1:', value)
-//         }, (reason) => {
-//             console.log('failed1:', reason)
-//         })
-//
-//         //Q7--------------thenable
-//         new Promise((resolve, reject) => {
-//             resolve({
-//                 then: (resolve,reject)=>{
-//                     resolve(1)
-//                 }
-//             })
-//         }).then((value) => {
-//             console.log('success2:', value)
-//         }, (reason) => {
-//             console.log('failed2:', reason)
-//         })
-//
-//         new Promise((resolve,reject)=>{
-//             resolve({
-//                 then:(onFulfilled,onRejected)=>{
-//                     onFulfilled(new Promise((resolve1)=>{
-//                         setTimeout(()=>{
-//                             resolve1(456)
-//                         },1000)
-//                     }))
-//                     onRejected(789)
-//                 }
-//             })
-//         }).then((value)=>{
-//             console.log('success:',value)
-//         },(reason)=>{
-//             console.log('reject:',reason)
-//         })
-//     }][type]
-//
-// }(2)())
+    return [() => {}, () => {
+        new Promise((resolve, reject) => {
+            resolve(new Promise((resolve) => {
+                resolve(1)
+            }))
+            reject('error')
+        }).then((value) => {
+            console.log('success:', value)
+        }, (reason) => {
+            console.log('failed:', reason)
+        })
+    }, () => {
+    }][type]
+
+}(1)())
+
 
 module.exports = Promise
