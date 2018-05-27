@@ -1,0 +1,22 @@
+{
+  "name": "jspi",
+  "version": "1.0.0",
+  "description": "Just a simple Promise/A+ implementation",
+  "main": "lib/promise",
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yonglijia/JSPI.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/yonglijia/JSPI/issues"
+  },
+  "homepage": "https://github.com/yonglijia/JSPI#readme",
+  "devDependencies": {
+    "promises-aplus-tests": "^2.1.1"
+  }
+}

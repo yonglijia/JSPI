@@ -1,0 +1,8 @@
+node_modules/*
+/node_modules
+/.happypack
+.idea
+*.log
+npm-debug.log
+npm-debug.log*
+
