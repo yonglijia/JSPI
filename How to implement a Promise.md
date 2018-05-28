@@ -3,7 +3,7 @@
 用了很久Promise，大家应该都很熟悉了吧！既然那么熟了，下面几个问题，了解一下？
 
 ```javascript
-Promise.resolve(1).then(2).then(new Promise()).then(console.log)
+Promise.resolve(1).then(2).then(Promise.resolve()).then(console.log)
 ```
 
 ```javascript
