@@ -40,6 +40,8 @@ Promise.prototype.then = function (onFulfilled, onRejected) {
 };
 
 
+//-------------test code--------------
+
 (function (type) {
     return [() => {
     }, () => {

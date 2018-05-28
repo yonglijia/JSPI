@@ -48,7 +48,6 @@ function Promise(executor) {
             reject(reason)
         })
     } catch (e) {
-        console.log(e)
         reject(e)
     }
 

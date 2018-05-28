@@ -1,4 +1,3 @@
-
 function Promise(executor) {
     if (!(this instanceof Promise)) {
         return new Promise(executor);
@@ -53,7 +52,6 @@ function Promise(executor) {
             reject(reason)
         })
     } catch (e) {
-        console.log(e)
         reject(e)
     }
 

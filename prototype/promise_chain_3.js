@@ -49,12 +49,12 @@ Promise.prototype.then = function (onFulfilled, onRejected) {
         })
     }
 
-    if (_this.status == 'rejected') {//不论 promise1 被 reject 还是被 resolve 时 newPromise 都会被 resolve，只有出现异常时才会被 rejected
+    //不论 promise1 被 reject 还是被 resolve 时 newPromise 都会被 resolve，只有出现异常时才会被 rejected
+    if (_this.status == 'rejected') {
         //add
         newPromise = new Promise(function(resolve,reject){
             let x = onRejected(_this.reason)
             resolve(x) //为什么rejected了还resolve呢?
-
         })
     }
 
@@ -77,6 +77,7 @@ Promise.prototype.then = function (onFulfilled, onRejected) {
 
 
 //-------------test code--------------
+
 (function(type){
 
     return [()=>{},()=>{
