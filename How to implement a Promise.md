@@ -1,6 +1,6 @@
-声明：本篇文章不是讲Promise如何使用的。如果还不清楚，请移步：[http://es6.ruanyifeng.com/#docs/promise](http://es6.ruanyifeng.com/#docs/promise )  阮一峰老师讲的通俗易懂！
+声明：本篇文章不是讲Promise如何使用的。如果还不清楚，请移步：[http://es6.ruanyifeng.com/#docs/promise](http://es6.ruanyifeng.com/#docs/promise )  ，阮一峰老师讲的通俗易懂！
 
-用过很久Promise，大家应该都很熟悉了吧！既然那么熟了，下面几个问题，了解一下？
+用了很久Promise，大家应该都很熟悉了吧！既然那么熟了，下面几个问题，了解一下？
 
 ```javascript
 Promise.resolve(1).then(2).then(new Promise()).then(console.log)
@@ -35,7 +35,7 @@ new Promise((resolve, reject) => {
 
 以上每个问题的答案是什么？为什么？是不是有点懵逼？你还敢说你熟悉吗？（如果你很清楚，那恭喜你，下面的你不用看了，这里已经不适合你了）
 
-要正确解释上面的问题，你需要充分的理解JS的运行机制以及Promise的实现原理。本文的目的就是为了让你理解透彻Promise到底是什么东西。
+要正确解释上面的问题，你需要充分的了解JS的运行机制以及Promise的实现原理。本文的目的就是让你明白Promise到底是个什么东西。
 
 下面，我们从一个Promise雏形开始，通过打补丁的方式，一步一步实现一个完整的Promise。Promise的原理，顺其自然就明白了！
 
@@ -47,11 +47,11 @@ new Promise((resolve, reject) => {
 
 1.Promise是一个状态机，有三种状态pending，fulfilled，rejected。只能从pending状态，转换为fulfilled或者rejected，不可逆转且无第三种状态转换方式。
 
-2.必须提供一个then方法用以处理当前值：终值和据因。then接收两个参数onFufilled，onRejected分别处理fulfilled和reject状态。
+2.必须提供一个then方法用以处理当前值：终值和据因。then接收两个参数onFufilled，onRejected分别处理fulfilled和reject的结果。
 
-3.then方法必须返回一个promise , 便于链式调用。
+3.then方法必须返回一个新的Promise , 便于链式调用。
 
-4.then方法返回的promise中的必须包含一个resolve方法，能够处理上一个promise的onFulfilled/onRejected返回的各种类型的值x和直接传入的各种类型的值；也就是说，它的resove方法，能够接受各种类型的数据，并最终接受一个普通值。
+4.Promise中必须包含一个resolve方法，能够接受各种类型的值，将其处理成普通值fulfilled或者直接rejected
 
 ## Promise雏形
 
@@ -99,23 +99,23 @@ Promise.prototype.then = function (onFulfilled, onRejected) {
 }
 ```
 
-从上面的代码中，promise里面的东西是很健全的，有改变promise装态的两个方法resolve(确切的说，这个方法应该叫fulfill，fulfill和resolve是概念是不一样的，后面会解释原因)和reject(这个也是不严谨的，后面会解释)，有管理状态的status，保存fulfilled状态值的value和rejected拒因的reason，还包含了一个then方法用来处理fulfilled的值和rejected的据因（还有一行`小注释`）。
+从上面的代码中，promise里面的东西是很健全的：有改变promise装态的两个方法resolve(确切的说，这个方法应该叫fulfill，fulfill和resolve是概念是不一样的，后面会解释原因)和reject，有管理状态的status，保存fulfilled状态值的value和rejected拒因的reason，还包含了一个then方法用来处理fulfilled的值和rejected的据因（还有一行`小注释`）。
 
-来试验一下:
+试验一下效果:
 
 ```javascript
 var promise = new Promise((resolve, reject) => {
     resolve('test simplePromise resolve')
 })
 
-promise1.then(function (value) {
+promise.then(function (value) {
     console.log('success:', value)
 }, function (reason) {
     console.log('failed:', reason)
 })
 ```
 
-妥妥的`success:test simplePromise resolve`
+妥妥的`success:test simplePromise resolve`，基本什么问题，有点promise的样子。
 
 来个问题测试一下，`Q1`
 
@@ -132,20 +132,20 @@ promise.then(function (value) {
 })
 ```
 
-你会发现，结果呢，怎么什么反应都没有。。。
+你会发现，结果什么反应都没有。。。
 
-从这里可以看出，它还不能处理异步的情况。不能处理异步，那叫什么Promise。
+从这里可以看出，它还不能处理异步的情况。不能处理异步，那叫什么Promise。要支持异步，then方法里面的参数就不能立即执行。既然不能立即执行，那就必须找地方，先保存起来！
 
-那怎么实现异步呢？要支持异步，then方法里面的参数就不能立即执行。既然不能立即执行，那就找地方，先保存起来呗！
+### 支持异步
 
-### 异步调用
+在Promise构造函数中添加两个回调数组
 
 ```javascript
 _this.onFulfilledCallbacks = []
 _this.onResolvedCallbacks = []
 ```
 
-弄两个数组，在then方法中添加
+在then方法中添加
 
 ```javascript
 if (_this.status == 'pending') {
@@ -182,7 +182,7 @@ function reject(reason) {
 }
 ```
 
-好了，这样就实现了异步调用。完整代码：[https://github.com/yonglijia/JSPI/blob/master/prototype/promise_async_2.js](https://github.com/yonglijia/JSPI/blob/master/prototype/promise_async_2.js)
+好了，这样就实现了异步调用，用`Q1`测试是没有问题的。增量代码：[https://github.com/yonglijia/JSPI/blob/master/prototype/promise_async_2.js](https://github.com/yonglijia/JSPI/blob/master/prototype/promise_async_2.js)
 
 来继续下一个话题，`Q2`
 
@@ -241,9 +241,11 @@ if (_this.status == 'pending'){
 return newPromise
 ```
 
-> 这里有个地方需要解释下：newPromise的状态不能因为上一个promise被reject了，而更改newPromise的状态；也就是说上一个promise无论被 reject 还是被 resolve ， newPromise 都会被 resolve，只有出现异常时才会被 rejecte。
+> 这里需要解释一下：newPromise的状态不能因为上一个promise被reject了，而更改newPromise的状态；也就是说上一个promise无论被 reject 还是被 resolve ， newPromise 都会被 resolve，只有出现异常时才会被 rejecte。
 
-`Q2`链式调用的问题也就解决了，完整代码：[https://github.com/yonglijia/JSPI/blob/master/prototype/promise_chain_3.js](https://github.com/yonglijia/JSPI/blob/master/prototype/promise_chain_3.js)。那，抛个错误玩玩？看下 `Q3`
+`Q2`链式调用的问题也就解决了。增量代码：[https://github.com/yonglijia/JSPI/blob/master/prototype/promise_chain_3.js](https://github.com/yonglijia/JSPI/blob/master/prototype/promise_chain_3.js)。
+
+那，抛个错误玩玩？看下 `Q3`
 
 ```javascript
 let promise = new Promise((resolve,reject) => {
@@ -256,11 +258,11 @@ promise.then((value)=>{
 })
 ```
 
-结果：Boom！！！`Error: error.....！`还是太年轻，经不起一点挫折啊。。。
+结果：`Error: error.....`，一堆错误，还是太年轻，经不起一点挫折啊。。。
 
 ### 异常处理
 
-来吧，继续打补丁
+来吧，继续打补丁，加上错误处理
 
 ```javascript
 if (!(this instanceof Promise)) {
@@ -332,7 +334,7 @@ if (_this.status == 'pending'){
 }
 ```
 
-贴了这么多狗皮膏药，再怎么处理折腾也能扛得住了，比如上面的问题，它很从容的打印一个`reject: Error: error`，并不会崩溃，处理异常就是这么淡定。完整代码：[https://github.com/yonglijia/JSPI/blob/master/prototype/promise_withCatchError_4.js](https://github.com/yonglijia/JSPI/blob/master/prototype/promise_withCatchError_4.js)
+再来看上面的结果：`reject: Error: error`，程序并不会崩溃，处理异常就是这么淡定！增量代码：[https://github.com/yonglijia/JSPI/blob/master/prototype/promise_withCatchError_4.js](https://github.com/yonglijia/JSPI/blob/master/prototype/promise_withCatchError_4.js)
 
 > 人生从来都不是一帆风顺的，有一个坑，就会有更多坑！
 
@@ -346,7 +348,7 @@ new Promise((resolve,reject)=>{
 },(reason)=>{console.log(reason)})
 ```
 
-结果:`TypeError: onRejected is not a function`，怎么变成了车祸现场了?按照原生的Promise，不是应该打印`1`吗？`1`哪里去了，毫无疑问，丢了！丢了，那就把它找回来。
+结果:`TypeError: onRejected is not a function`，怎么又变成了车祸现场了?按照原生的Promise，不是应该打印`1`吗？`1`哪里去了，毫无疑问，丢了！丢了，那就把它找回来。
 
 ### 值穿透
 
@@ -380,7 +382,7 @@ onRejected = typeof onRejected === 'function' ? onRejected : function (err) {
 }
 ```
 
-搞定！完整代码：[https://github.com/yonglijia/JSPI/blob/master/prototype/promise_transmit_value_5.js](https://github.com/yonglijia/JSPI/blob/master/prototype/promise_transmit_value_5.js)
+搞定！增量代码：[https://github.com/yonglijia/JSPI/blob/master/prototype/promise_transmit_value_5.js](https://github.com/yonglijia/JSPI/blob/master/prototype/promise_transmit_value_5.js)
 
 我们解决了不少问题了：`异步调用`，`链式调用` ，`异常处理`，`值穿透`，是不是可以休息会了？当然不行！
 
@@ -416,9 +418,9 @@ end
 
 是不是感觉哪里不对劲？是的，为什么`end`会在`success`之后打印？Promise不就是来解决异步的吗？
 
-从上面可以分析出，我们then方法中的传入的onFulfilled和onRejected方法执行时机不正确。它应该是异步执行。这一点也正是规范2.2.4规定的，不清楚的可以看下规范。
+从上面可以分析出，then方法中的传入的onFulfilled和onRejected方法执行时机不正确。它应该是异步执行。这一点也正是规范2.2.4规定的，不清楚的可以看下规范。
 
-那既然异步执行，那就再套一层马甲呗，setTimeout不就可以模拟异步执行嘛，那我们就用setTimeout改造一下。
+那既然异步执行，那就再套一层马甲呗，setTimeout不就可以模拟异步执行嘛，那就用setTimeout改造一下试试。
 
 ### 异步调用then回调函数
 
@@ -472,7 +474,7 @@ newPromise = new Promise(function(resolve,reject){
 })
 ```
 
-验证`Q5`发现，打印出的结果是符合我们预期的。完整代码：[https://github.com/yonglijia/JSPI/blob/master/prototype/promise_async_then_6.js](https://github.com/yonglijia/JSPI/blob/master/prototype/promise_async_then_6.js)。那我们再验证下其他的异步情况
+验证`Q5`发现，打印出的结果是符合我们预期的。增量代码：[https://github.com/yonglijia/JSPI/blob/master/prototype/promise_async_then_6.js](https://github.com/yonglijia/JSPI/blob/master/prototype/promise_async_then_6.js)。那再验证下其他的异步情况
 
 `Q6`
 
@@ -492,13 +494,15 @@ new Promise((resolve,reject)=>{
 console.log(2)
 ```
 
-结果：`1，2，5，4，3`。我们用原生的验证下，发现结果是`1，2，4，3，5`，那我们的为什么和原生的结果不一样呢？这要从JS的执行机制娓娓道来！
+结果：`1，2，5，4，3`。
+
+用原生的验证下，发现结果是`1，2，4，3，5`，那我们的为什么和原生的结果不一样呢？这要从JS的执行机制娓娓道来！
 
 上图说话：
 
 ![](http://ody1t82mr.bkt.clouddn.com/2018-05-25-15272186536477.jpg)
 
-从上图中可以看出，js的事件循环是先执行宏任务，再执行微任务。每一次执行一个宏任务，都去查看微任务队列，如果有微任务，就执行所有的微任务队列。
+从上图中可以看出，js的事件循环是先执行宏任务，再执行微任务。每一次执行一个宏任务，都去查看微任务队列，如果有微任务，就执行所有的微任务队列。（这里不细说，详细可参考：[https://juejin.im/post/59e85eebf265da430d571f89](https://juejin.im/post/59e85eebf265da430d571f89)）
 
 宏任务和微任务的分类如下：
 
@@ -509,14 +513,12 @@ console.log(2)
 
 ![](http://ody1t82mr.bkt.clouddn.com/2018-05-25-15272204338046.jpg)
 
-整个流程如下：先执行宏任务中的整体代码，遇到setTimeout，它属于宏任务，放到宏任务队列里面，然后执行promise构造函数，打印1。Promise是个微任务，会把构造函数内部promise的`console.log(4)`放到微任务中，然后外面promise中的`console.log(3)`。继续执行打印2。当前宏任务执行完毕，执行微任务队列，打印4，3。微任务队列为空，继续执行宏任务，打印5，整个流程结束，结果`12435`。
+整个流程如下：先执行宏任务中的整体代码，遇到setTimeout，它属于宏任务，放到宏任务队列里面，然后执行Promise构造函数，打印1。Promise是个微任务，会把构造函数内部Promise的`console.log(4)`放到微任务中，然后外面Promise中的`console.log(3)`。继续执行打印2。当前宏任务执行完毕，执行微任务队列，打印4，3。微任务队列为空，继续执行宏任务，打印5，整个流程结束，结果`12435`。
 
-梳理完上面的流程，我们再看我们的代码为什么输出`12543`，就能明白，我们使用setTimeout宏任务来异步执行我们的then回调方法是不合适的。
-
-所以说，我们要把setTimeout替换成微任务方法(推荐使用**immediate**这个库)，比如process.nextTick，你可以去验证下，结果肯定是`12435`了。浏览器环境可以使用
+梳理完上面的流程，再看我们的代码就能明白，使用setTimeout宏任务来异步执行then回调方法是不太合适的，应该把setTimeout替换成微任务方法(推荐使用**immediate**这个库)，比如process.nextTick，你可以去验证下，结果肯定是`12435`了。浏览器环境可以使用`MutationObserver`。我封装了下asyncCall
 
 ```javascript
-function (callback) {
+var asyncCall = (process && process.nextTick) || setImmediate || function (callback) {
     if (typeof callback !== 'function')
         throw new TypeError('callback is not a function');
     var Mutation = window.MutationObserver || window.WebKitMutationObserver;
@@ -526,10 +528,14 @@ function (callback) {
         characterData: true
     });
     element.data = 1;
-} 
+} || function (callback) {
+    if (typeof callback !== 'function')
+        throw new TypeError('callback is not a function');
+    setTimeout(callback, 0);
+};
 ```
 
-我们就用process.nextTick来改造。完整代码：[https://github.com/yonglijia/JSPI/blob/master/prototype/promise_nextTick_7.js](https://github.com/yonglijia/JSPI/blob/master/prototype/promise_nextTick_7.js)
+这里简单起见，就先用process.nextTick来改造。增量代码：[https://github.com/yonglijia/JSPI/blob/master/prototype/promise_nextTick_7.js](https://github.com/yonglijia/JSPI/blob/master/prototype/promise_nextTick_7.js)
 
 下面来看下一个问题：
 
@@ -564,11 +570,10 @@ success: Promise {
 success: 1
 ```
 
-我们无法正确处理。对于下面的情况，我们一样无法处理：
+我们无法正确处理，写的不符合规范，也就是对传入进来的值没有进行任何处理。对于下面的异常情况，我们一样无法处理：
 
-1.传进来的是当前promise
-
-2.thenable
+1. 传进来的是当前promise
+2. thenable
 
 ```javascript
 new Promise((resolve, reject) => {
@@ -584,9 +589,7 @@ new Promise((resolve, reject) => {
 })
 ```
 
-
-
-3.或者一调用就出错的thenable
+1. 或者一调用就出错的thenable
 
 ```javascript
 let promise = {}
@@ -597,7 +600,7 @@ Object.defineProperty(promise,'then',{
 })
 ```
 
-4.调用了resolve，又调用了reject
+1. 调用了resolve，又调用了reject
 
 ```javascript
 new Promise((resolve, reject) => {
@@ -618,9 +621,9 @@ new Promise((resolve, reject) => {
 
 要解决这个问题，还得先理解下上面我们总结的第四个核心点
 
-> 4.then方法返回的promise中的必须包含一个resolve方法，能够处理上一个promise的onFulfilled/onRejected返回的各种类型的值x和直接传入的各种类型的值；也就是说，它的resove方法，能够接受各种类型的数据，并最终接受一个普通值。
+> 4.Promise中必须包含一个resolve方法，能够接受各种类型的值，将其处理成普通值fulfilled或者直接rejected
 
-这也是规范里面2.3规定的。下面我们来一点点的按照规范依葫芦画瓢，写出一个复合规范的resolve。
+这也是规范里面2.3规定的。下面我们来一点点的按照规范，写出一个复合规范的resolve。
 
 ### resolvePromise
 
@@ -642,13 +645,13 @@ function fulfill(value){ //只接受普通值，不接受promise和thenable
 }
 ```
 
-我们将原来的resolve改成了fulfill方法，现在你应该能明白上面提到的fulfill和resolve不是一个概念了吧！
+将原来的resolve改成fulfill方法。现在你应该能明白上面提到的fulfill和resolve不是一个概念了吧！
 
 > fulfill只是一个状态改变器并且在改变完状态之后使用传进来的普通值，调用回调数组里面的回调函数。
 >
 > resolve是将传进来的数据，处理成一个普通值，并根据处理的情况，决定是否fulfill还是reject。
 
-下面重点讲解resolvePromise：
+来完善resolvePromise：
 
 ```javascript
 function resolvePromise(promise,x,fulfill,reject) {
@@ -675,9 +678,9 @@ function resolvePromise(promise,x,fulfill,reject) {
 }
 ```
 
-我们先写到这里：验证下`Q7`,发现结果是正确的,`success1: 1`。完整代码：[https://github.com/yonglijia/JSPI/blob/master/prototype/promise_without_called_8.js](https://github.com/yonglijia/JSPI/blob/master/prototype/promise_without_called_8.js)
+我们先写到这里，验证下`Q7`,发现结果是正确的,`success: 1`。增量代码：[https://github.com/yonglijia/JSPI/blob/master/prototype/promise_without_called_8.js](https://github.com/yonglijia/JSPI/blob/master/prototype/promise_without_called_8.js)
 
-我们用现在的promise来执行另一个问题：Q8
+再来折腾下，用现在的promise来执行另一个问题：`Q8`
 
 ```javascript
 new Promise((resolve, reject) => {
@@ -694,13 +697,15 @@ new Promise((resolve, reject) => {
 
 发现结果是：`failed:error`。为什么我们写的promise的状态不可控？
 
-事实上是这样的，根据上面的resolvePromise，如果发现resolve接收的参数是一个promise,会去递归调用它的then方法，我们知道，then方法中包含微任务。然后就先执行了reject('error')，这个执行完毕，promise的状态从pending更新为reject，所以当resolve的微任务执行的时候，状态已经改变了，无法执行fulfill的操作。执行下一个微任务，打印了`failed:error`。
+事实上是这样的，根据上面的resolvePromise，发现resolve接收的参数是一个promise，会去递归调用它的then方法，我们知道，then方法中包含微任务。然后就先执行了reject('error')，这个执行完毕，promise的状态从pending更新为reject。执行then方法，将onRejected方法放到微任务对列中。当resolve的微任务执行的时候，状态已经改变了，无法执行fulfill的操作。执行下一个微任务onRejected，打印了`failed:error`。
 
-从这个问题可以看出，现在我们写的promise，resolve和reject的调用并不阻塞promise状态的更新。标准只规定了，状态改变一次就不能改变了，并没有规定resolve和reject的调用，要阻塞状态更新。虽然并没有这么硬性规定，但是大家都是这么理解的，比如你可以运行浏览器，node原生promise以及第三方bluebird，Q，lie库等，都是resolve，reject调用的时候，会阻塞另一个方法的状态更新。
+从这个问题可以看出，我们写的promise，resolve和reject的调用并不阻塞promise状态的更新。
 
-#### promise状态阻塞更新
+标准只规定了，状态改变一次就不能改变了，并没有规定resolve和reject的调用，要阻塞状态更新。虽然并没有这么硬性规定，但是大家都是这么理解的，比如你可以运行浏览器，node原生promise以及第三方bluebird，Q，lie库等，都是resolve，reject调用的时候，会阻塞另一个方法的状态更新。这也符合常理，不能调用了resolve，再去调用reject，就乱套了 。
 
-我们可以通过在Promise的构造函数中添加called变量的方式，来阻塞状态更新
+#### Promise状态阻塞更新
+
+我们可以通过在Promise的构造函数中添加called变量的方式，来阻塞状态更新（从这里可以看出，在文章开头加的那个注释的意思了吧）。
 
 ```javascript
 try {
@@ -720,9 +725,11 @@ try {
 }
 ```
 
-从这里可以看出，我为什么要在文章开头加的那个注释的意思了吧。完整代码：[https://github.com/yonglijia/JSPI/blob/master/prototype/promise_with_called_9.js](https://github.com/yonglijia/JSPI/blob/master/prototype/promise_with_called_9.js)
+再次运行`Q8`,结果：`success:1`。 增量代码：[https://github.com/yonglijia/JSPI/blob/master/prototype/promise_with_called_9.js](https://github.com/yonglijia/JSPI/blob/master/prototype/promise_with_called_9.js)
 
-好再次运行`Q8`,结果：`success:1`。好我们继续完善我们`resolvePromise`，来处理下thenable的情况
+我们继续完善`resolvePromise`，来处理下`thenable`的情况
+
+#### Handle thenable
 
 ```javascript
 function resolvePromise(promise,x,fulfill,reject) {
@@ -730,7 +737,6 @@ function resolvePromise(promise,x,fulfill,reject) {
     if (promise === x) {//2.3.1 传进来的x与当前promise相同，报错
         return reject(new TypeError('循环引用了'))
     }
-   
     //2.3.2 x如果是一个promise
     if (x instanceof Promise) {
         //2.3.2.1
@@ -778,7 +784,7 @@ function resolvePromise(promise,x,fulfill,reject) {
 
 上面的注释已经很详细了，包括了规范规定的所有异常处理。
 
-这里有个疑点需要重点解释一下，我们看到上述代码中出现的。
+这里有个疑点需要重点解释一下，我们看到上述代码中出现
 
 ```javascript
 if (called) return 
@@ -808,7 +814,7 @@ new Promise((resolve,reject)=>{
 })
 ```
 
-其实这段代码就类似于
+其实上面代码就类似于
 
 ```javascript
 new Promise((resolve,reject)=>{
@@ -827,9 +833,9 @@ new Promise((resolve,reject)=>{
 })
 ```
 
-我们通过上面的代码中可以看出，thenable其实就是一个没有promise状态阻塞更新机制的promise。这里的called就相当于是为了防止调用了resolve又调用了reject乱套的问题。
+我们通过上面的代码中可以看出，`thenable`其实就是一个没有状态阻塞更新机制的`promise`。这里的called就相当于是为了防止调用了resolve又调用了reject乱套的问题。
 
-### 完整代码
+## 完整代码
 
 ```javascript
 function Promise(executor) {
@@ -884,70 +890,67 @@ function Promise(executor) {
             reject(reason)
         })
     } catch (e) {
-        console.log(e)
         reject(e)
     }
+
 }
 
-function resolvePromise(promise,x,resolve,reject) {
+function resolvePromise(promise,x,fulfill,reject) {
 
-    if (promise === x) {//2.3.1
+    if (promise === x) {//2.3.1 传进来的x与当前promise相同，报错
         return reject(new TypeError('循环引用了'))
     }
-    //2.3.2
+
+    //2.3.2 x如果是一个promise
     if (x instanceof Promise) {
         //2.3.2.1
-        if (x.status === 'pending') { //because x could resolved by a Promise Object
+        if (x.status === 'pending') { //x状态还未改变，返回的下一个promise的resove的接收的值y不确定，对其递归处理
             x.then(function(y) {
-                resolvePromise(promise, y, resolve, reject)
-            }, reject)
+                resolvePromise(promise, y, fulfill, reject)
+            },reject)
         } else {
-            //2.3.2.2     2.3.2.3
-            //if it is resolved, it will never resolved by a Promise Object but a normal value;只可能是一个普通值
-            x.then(resolve, reject)
+            //2.3.2.2 ,  2.3.2.3
+            //状态确定，如果fulfill那传进来的肯定是普通值，如果reject直接处理，不管你抛出来的是什么东东
+            x.then(fulfill, reject)
         }
-        return
+        return;
     }
-
     let called = false;
     //2.3.3
+    //x 是一个thenable
     if(x !== null && (typeof x === 'object' || typeof x === 'function')){
         try {
             //2.3.3.1
-            let then = x.then;// 保存一下x的then方法
-            if (typeof then === 'function') {//2.3.3.3
+            let then = x.then;
+            if (typeof then === 'function') {//2.3.3.3  {then:: (resolve,reject)=>{resolve(1)}}}
                 then.call(x,(y)=>{
-                    if (called) return //防止resolve后，又reject,例子：示例1
+                    if (called) return
                     called = true
-                    resolvePromise(promise,y,resolve,reject)
+                    resolvePromise(promise,y,fulfill,reject)
                 },(err)=>{
                     if (called) return
                     called = true
                     reject(err)
                 })
-            }else{//2.3.3.2   x: {then:1}
-                resolve(x)
+            }else{//2.3.3.2   x: {then:1}，是一个带then属性的普通值
+                fulfill(x)
             }
-        }catch(e){//2.3.3.2
+        }catch(e){//2.3.3.2  可以参见上面说的异常情况2
             if (called) return
             called = true;
             reject(e);
         }
-
-    }else{//2.3.3.4
-        resolve(x)
+    }else{//2.3.3.4,x是一个普通值
+        fulfill(x)
     }
 }
-
 Promise.prototype.then = function (onFulfilled, onRejected) {
-
     onFulfilled = typeof onFulfilled === 'function' ? onFulfilled : function (value) {
         return value
     }
     onRejected = typeof onRejected === 'function' ? onRejected : function (err) {
         throw err
     }
-
     let _this = this
     let newPromise
     if (_this.status === 'resolved') {
@@ -962,6 +965,7 @@ Promise.prototype.then = function (onFulfilled, onRejected) {
             })
         })
     }
+
     if (_this.status === 'rejected') {
         newPromise = new Promise(function (resolve, reject) {
             process.nextTick(function () {
@@ -974,6 +978,7 @@ Promise.prototype.then = function (onFulfilled, onRejected) {
             })
         })
     }
+
     if (_this.status === 'pending') {
         newPromise = new Promise(function (resolve, reject) {
 
@@ -986,6 +991,7 @@ Promise.prototype.then = function (onFulfilled, onRejected) {
                         reject(e)
                     }
                 })
+
             })
             _this.onRejectedCallbacks.push(function () {
                 process.nextTick(function () {
@@ -1002,11 +1008,14 @@ Promise.prototype.then = function (onFulfilled, onRejected) {
     }
     return newPromise
 }
-
 module.exports = Promise
 ```
 
-测试，首先你要暴露一个接口：
+
+
+## 测试
+
+首先你要暴露一个接口：
 
 ```javascript
 Promise.deferred = Promise.defer = function () {
@@ -1018,6 +1027,8 @@ Promise.deferred = Promise.defer = function () {
     return dfd
 }
 ```
+
+使用`promises-aplus-tests`这个库，具体使用方法，请移步它的github去查看吧，不详细介绍了。
 
 ```
 npm install promises-aplus-tests
@@ -1033,27 +1044,27 @@ promises-aplus-tests myPromise.js
 ## 其他方法
 
 ```javascript
-Promise.prototype.catch = function(callback){
+Promise.prototype.catch = function(callback){ 
     return this.then(null,callback)
 }
-Promise.resolve = function(value){
+Promise.resolve = function(value){ //返回一个promise
     return new Promise(function(resolve,reject){
         resolve(value);
     })
 }
-Promise.reject = function(value){
+Promise.reject = function(value){//返回一个promise
     return new Promise(function(resolve,reject){
         reject(value);
     })
 }
-Promise.race = function(promise){
+Promise.race = function(promise){//只要有一个成功了就resolve,有一个失败了就reject
     return new Promise(function (resolve,reject){
         for(var i = 0;i<promise.length;i++){
             promise[i].then(resolve,reject)
         }
     })
 }
-Promise.all = function(promises){
+Promise.all = function(promises){ //所有的都成功了resolve，有一个失败了就reject
     return new Promise(function(resolve,reject){
         let resultArr = [];
         let times = 0;
@@ -1072,4 +1083,8 @@ Promise.all = function(promises){
 }
 ```
 
-理解了Promise，上面其他的方法就很简单了，这里就不解释了。最终代码参见[https://github.com/yonglijia/JSPI/blob/master/lib/promise.js](https://github.com/yonglijia/JSPI/blob/master/lib/promise.js)
+理解了Promise，上面其他的方法就很简单了，这里就不解释了。
+
+## 终极代码
+
+参见[https://github.com/yonglijia/JSPI/blob/master/lib/promise.js

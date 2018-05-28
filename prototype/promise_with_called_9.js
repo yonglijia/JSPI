@@ -60,19 +60,19 @@ function Promise(executor) {
 
 function resolvePromise(promise,x,fulfill,reject) {
 
-    if (promise === x) {//2.3.1
+    if (promise === x) {//2.3.1 传进来的x与当前promise相同，报错
         return reject(new TypeError('循环引用了'))
     }
     //2.3.2
     if (x instanceof Promise) {
         //2.3.2.1
-        if (x.status === 'pending') { //because x could resolved by a Promise Object
+        if (x.status === 'pending') { //x状态还未改变，返回的下一个promise的resove的接收的值y不确定，对其递归处理
             x.then(function(y) {
                 resolvePromise(promise, y, fulfill, reject)
             }, reject)
         } else {
             //2.3.2.2     2.3.2.3
-            //if it is resolved, it will never resolved by a Promise Object but a normal value
+            //状态确定，如果fulfill那传进来的肯定是普通值，如果reject直接处理，不管你抛出来的是什么东东
             x.then(fulfill, reject)
         }
         return
