@@ -589,7 +589,7 @@ new Promise((resolve, reject) => {
 })
 ```
 
-1. 或者一调用就出错的thenable
+3. 或者一调用就出错的thenable
 
 ```javascript
 let promise = {}
@@ -600,7 +600,7 @@ Object.defineProperty(promise,'then',{
 })
 ```
 
-1. 调用了resolve，又调用了reject
+4. 调用了resolve，又调用了reject
 
 ```javascript
 new Promise((resolve, reject) => {
@@ -627,7 +627,7 @@ new Promise((resolve, reject) => {
 
 ### resolvePromise
 
-1. 首先改造Promise构造函数中的resolve
+首先改造Promise构造函数中的resolve
 
 ```javascript
 function resolve(value) {
