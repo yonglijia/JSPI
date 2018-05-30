@@ -1087,4 +1087,4 @@ Promise.all = function(promises){ //所有的都成功了resolve，有一个失�
 
 ## 终极代码
 
-参见[https://github.com/yonglijia/JSPI/blob/master/lib/promise.js
+参见[https://github.com/yonglijia/JSPI/blob/master/lib/promise.js](https://github.com/yonglijia/JSPI/blob/master/lib/promise.js)
