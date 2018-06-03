@@ -142,7 +142,7 @@ promise.then(function (value) {
 
 ```javascript
 _this.onFulfilledCallbacks = []
-_this.onResolvedCallbacks = []
+_this.onRejectedCallbacks = []
 ```
 
 在then方法中添加
