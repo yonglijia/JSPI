@@ -1,6 +1,6 @@
 # 深究Promise的原理及其实现
 
-回顾JavaScript的异步发展历程，JavaScript异步处理经过了`回调函数Callback`，`Promise/A+`，`生成器Generators/ yield`，`Async/Await`的演变。从回调地狱到`Async/Await`近似于同步的写法，可以说耗费了一代又一代人的心血。作为发展历程中的Promise/A+，起到承前启后的作用，它用优雅的语法解决了回调地狱的问题，但离进化到完美又有一定的距离。即使如此，它优雅的设计依然受到很多人的青睐，依然是日常使用最高频的异步处理方式。它优雅的设计吸引着我对其内心的本质的探究，所以才有了本文的诞生。本文通过由浅入深的方式，一步一步揭开Promise神秘的面纱，探寻它优雅的设计是如何实现的。
+回顾JavaScript的异步处理发展历程，JavaScript异步处理经过了`回调函数Callback`，`Promise`，`Generator`，`Async/Await`的演变。从回调地狱到`Async/Await`近似于同步的写法，可以说耗费了一代又一代人的心血。作为发展历程中的`Promise`，起到承前启后的作用，它用优雅的语法解决了回调地狱的问题，但离进化到完美又有一定的距离。即使如此，它优雅的设计依然受到很多人的青睐，依然是日常使用最高频的异步处理方式。它优雅的设计吸引着我对其内心的本质的探究，所以才有了本文的诞生。本文通过由浅入深的方式，一步一步揭开Promise神秘的面纱，探寻它优雅的设计是如何实现的。
 
 首先来看下如何使用`Promise`，这里简单介绍下Promise是如何处理异步的：
 
@@ -537,7 +537,7 @@ console.log(2)
 
 根据这个分类，`Q6`代码的执行过程可以表示为下图
 
-![](http://ody1t82mr.bkt.clouddn.com/2018-05-25-15272204338046.jpg)
+![20180815153430430964513.png](http://ody1t82mr.bkt.clouddn.com/20180815153430430964513.png)
 
 整个流程如下：先执行宏任务中的主体代码，遇到`setTimeout`，它属于宏任务，放到宏任务队列里面，然后执行Promise构造函数，打印`1`。Promise是个微任务，首先会把其内部Promise的`console.log(4)`放到微任务队列中，然后将其本身的微任务`console.log(3)`放到微任务队列里面。继续执行主体代码打印`2`。当前宏任务执行完毕，执行微任务队列，打印`4`，`3`。微任务队列为空，继续执行宏任务，打印`5`，整个流程结束，结果`12435`。
 
@@ -615,7 +615,7 @@ new Promise((resolve, reject) => {
 })
 ```
 
-1. 一调用就出错的thenable
+3. 一调用就出错的thenable
 
 ```javascript
 let promise = {}
@@ -626,7 +626,7 @@ Object.defineProperty(promise,'then',{
 })
 ```
 
-1. 调用了resolve，又调用了reject
+4. 调用了resolve，又调用了reject
 
 ```javascript
 new Promise((resolve, reject) => {
